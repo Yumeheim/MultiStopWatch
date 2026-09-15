@@ -1,0 +1,1064 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>マルチストップウォッチ</title>
+<style>
+:root {
+    --bg-color:#f7f7f7;
+    --text-color:#111;
+    --card-bg:#fff;
+    --border-color:#e0e0e0;
+    --primary-bg:#111;
+    --primary-text:#fff;
+    --secondary-bg:transparent;
+    --secondary-text:#111;
+    --secondary-border:#111;
+    --disabled-bg:#e0e0e0;
+    --disabled-text:#999;
+    --input-bg:#fff;
+    --input-border:#ccc;
+    --lap-bg:#fdfdfd;
+    --lap-border:#eee;
+}
+
+@media (prefers-color-scheme:dark) {
+    :root {
+        --bg-color:#121212;
+        --text-color:#eee;
+        --card-bg:#1e1e1e;
+        --border-color:#333;
+        --primary-bg:#eee;
+        --primary-text:#111;
+        --secondary-text:#eee;
+        --secondary-border:#eee;
+        --disabled-bg:#333;
+        --disabled-text:#666;
+        --input-bg:#2a2a2a;
+        --input-border:#555;
+        --lap-bg:#252525;
+        --lap-border:#333;
+    }
+}
+
+body {
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+    margin:0;
+    padding:20px;
+    background:var(--bg-color);
+    color:var(--text-color);
+}
+
+h1 {
+    text-align:center;
+    font-weight:600;
+    letter-spacing:2px;
+    margin-bottom:20px;
+}
+
+#controls {
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap:12px;
+    margin-bottom:30px;
+}
+
+.control-row {
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    flex-wrap:wrap;
+    gap:10px;
+    font-size:14px;
+}
+
+.name-type-selector label {
+    margin:0 5px;
+    cursor:pointer;
+}
+
+select {
+    padding:7px 10px;
+    border:1px solid var(--input-border);
+    border-radius:6px;
+    background:var(--input-bg);
+    color:var(--text-color);
+}
+
+button {
+    padding:10px 16px;
+    font-size:14px;
+    font-weight:500;
+    cursor:pointer;
+    border-radius:6px;
+    box-sizing:border-box;
+}
+
+button:disabled {
+    cursor:not-allowed;
+    background:var(--disabled-bg)!important;
+    color:var(--disabled-text)!important;
+    border-color:transparent!important;
+}
+
+.btn-primary {
+    background:var(--primary-bg);
+    color:var(--primary-text);
+    border:1px solid var(--primary-bg);
+}
+
+.btn-primary:hover:not(:disabled) {
+    opacity:.8;
+}
+
+.btn-outline {
+    background:var(--secondary-bg);
+    color:var(--secondary-text);
+    border:1px solid var(--secondary-border);
+}
+
+.btn-outline:hover:not(:disabled) {
+    background:var(--text-color);
+    color:var(--bg-color);
+}
+
+#stopwatches-container {
+    display:flex;
+    flex-wrap:wrap;
+    gap:20px;
+    justify-content:center;
+}
+
+.stopwatch-card {
+    background:var(--card-bg);
+    padding:15px 20px 20px;
+    border:2px solid var(--border-color);
+    border-radius:12px;
+    width:100%;
+    max-width:340px;
+    text-align:center;
+    box-sizing:border-box;
+    display:flex;
+    flex-direction:column;
+}
+
+.start-date {
+    font-size:12px;
+    color:var(--disabled-text);
+    text-align:left;
+    height:16px;
+    margin-bottom:5px;
+}
+
+.name-input {
+    width:100%;
+    padding:10px;
+    font-size:16px;
+    text-align:center;
+    border:1px solid var(--input-border);
+    background:var(--input-bg);
+    color:var(--text-color);
+    border-radius:6px;
+    margin-bottom:10px;
+    box-sizing:border-box;
+    outline:none;
+}
+
+.time-display {
+    font-size:3em;
+    font-family:"Courier New",Courier,monospace;
+    font-weight:bold;
+    margin:10px 0;
+    letter-spacing:-1px;
+}
+
+.card-controls {
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:10px;
+    margin-bottom:15px;
+}
+
+.lap-container {
+    flex-grow:1;
+    background:var(--lap-bg);
+    border:1px solid var(--lap-border);
+    border-radius:6px;
+    margin-bottom:15px;
+    min-height:100px;
+    max-height:120px;
+    overflow-y:auto;
+    text-align:left;
+}
+
+.lap-list {
+    list-style:none;
+    margin:0;
+    padding:0;
+}
+
+.lap-item {
+    padding:6px 10px;
+    border-bottom:1px solid var(--lap-border);
+    font-family:monospace;
+    font-size:13px;
+    display:flex;
+    justify-content:space-between;
+}
+
+.lap-item:last-child {
+    border-bottom:none;
+}
+
+.lap-index {
+    opacity:.7;
+}
+
+.delete-btn {
+    background:transparent;
+    color:#d93025;
+    border:1px solid #d93025;
+}
+
+.delete-btn:hover:not(:disabled) {
+    background:#d93025;
+    color:#fff;
+    border-color:#d93025;
+}
+
+.footer-area {
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    margin-top:auto;
+}
+
+.color-palette {
+    display:flex;
+    gap:6px;
+    align-items:center;
+}
+
+.color-dot {
+    width:18px;
+    height:18px;
+    border-radius:50%;
+    cursor:pointer;
+    border:1px solid rgba(128,128,128,.5);
+    box-sizing:border-box;
+}
+
+.color-dot.selected {
+    outline:2px solid var(--text-color);
+    outline-offset:2px;
+}
+
+.custom-color {
+    width:22px;
+    height:22px;
+    padding:0;
+    border:0;
+    background:transparent;
+    cursor:pointer;
+}
+
+dialog {
+    background:var(--card-bg);
+    color:var(--text-color);
+    border:1px solid var(--border-color);
+    border-radius:8px;
+    padding:20px;
+    box-shadow:0 4px 12px rgba(0,0,0,.2);
+}
+
+dialog::backdrop {
+    background:rgba(0,0,0,.5);
+}
+
+.dialog-btns {
+    margin-top:20px;
+    text-align:right;
+}
+
+.dialog-btns button {
+    margin-left:10px;
+}
+
+.dialog-delete {
+    background:#d93025;
+    color:#fff;
+    border:1px solid #d93025;
+}
+</style>
+</head>
+
+<body>
+
+<h1 id="title">マルチストップウォッチ</h1>
+
+<div id="controls">
+
+    <div class="control-row name-type-selector">
+        <label>
+            <input type="radio" name="nameType" value="seq" checked>
+            <span data-i18n="sequential">連番</span>
+        </label>
+
+        <label>
+            <input type="radio" name="nameType" value="time">
+            <span data-i18n="datetime">日時</span>
+        </label>
+    </div>
+
+    <div class="control-row">
+        <span data-i18n="palette">配色</span>
+        <select id="palette-select">
+            <option value="visibility1">視認性 1</option>
+            <option value="visibility2">視認性 2</option>
+            <option value="modern1">モダン 1</option>
+            <option value="modern2">モダン 2</option>
+        </select>
+
+        <span data-i18n="language">言語</span>
+        <select id="language-select">
+            <option value="ja">日本語</option>
+            <option value="en">English</option>
+        </select>
+    </div>
+
+    <button id="add-btn" class="btn-primary">＋ 追加</button>
+
+</div>
+
+<div id="stopwatches-container"></div>
+
+<dialog id="delete-dialog">
+    <p id="delete-message">このストップウォッチを削除しますか？</p>
+
+    <label>
+        <input type="checkbox" id="skip-confirm-cb">
+        <span data-i18n="skipConfirm">今後確認しない</span>
+    </label>
+
+    <div class="dialog-btns">
+        <button id="cancel-delete" class="btn-outline">キャンセル</button>
+        <button id="exec-delete" class="dialog-delete">削除</button>
+    </div>
+</dialog>
+
+<script>
+const container = document.getElementById("stopwatches-container");
+const addBtn = document.getElementById("add-btn");
+const deleteDialog = document.getElementById("delete-dialog");
+const paletteSelect = document.getElementById("palette-select");
+const languageSelect = document.getElementById("language-select");
+
+const STORAGE_KEY = "multisw-data-v3";
+
+const palettes = {
+    visibility1: [
+        "#e53935",
+        "#1e88e5",
+        "#43a047",
+        "#fb8c00",
+        "#8e24aa",
+        "#00acc1"
+    ],
+    visibility2: [
+        "#d32f2f",
+        "#1976d2",
+        "#388e3c",
+        "#f57c00",
+        "#7b1fa2",
+        "#00796b"
+    ],
+    modern1: [
+        "#6366f1",
+        "#8b5cf6",
+        "#ec4899",
+        "#06b6d4",
+        "#10b981",
+        "#f59e0b"
+    ],
+    modern2: [
+        "#475569",
+        "#64748b",
+        "#0f766e",
+        "#0369a1",
+        "#7c3aed",
+        "#be123c"
+    ]
+};
+
+const texts = {
+    ja: {
+        title:"マルチストップウォッチ",
+        sequential:"連番",
+        datetime:"日時",
+        palette:"配色",
+        language:"言語",
+        add:"＋ 追加",
+        start:"開始",
+        stop:"停止",
+        lap:"ラップ",
+        reset:"リセット",
+        delete:"削除",
+        custom:"カスタム",
+        skipConfirm:"今後確認しない",
+        cancel:"キャンセル",
+        deleteMessage:"このストップウォッチを削除しますか？",
+        lapLabel:"ラップ",
+        placeholder:"タイトル",
+        paletteOptions:[
+            "視認性 1",
+            "視認性 2",
+            "モダン 1",
+            "モダン 2"
+        ]
+    },
+
+    en: {
+        title:"Multi Stopwatch",
+        sequential:"Sequential",
+        datetime:"Date & Time",
+        palette:"Colors",
+        language:"Language",
+        add:"+ Add",
+        start:"Start",
+        stop:"Stop",
+        lap:"Lap",
+        reset:"Reset",
+        delete:"Delete",
+        custom:"Custom",
+        skipConfirm:"Don't ask again",
+        cancel:"Cancel",
+        deleteMessage:"Delete this stopwatch?",
+        lapLabel:"Lap",
+        placeholder:"Title",
+        paletteOptions:[
+            "High Visibility 1",
+            "High Visibility 2",
+            "Modern 1",
+            "Modern 2"
+        ]
+    }
+};
+
+let stopwatches = {};
+let timerInterval = null;
+let targetToDelete = null;
+let skipConfirm = localStorage.getItem("skipConfirm") === "true";
+
+let currentPalette =
+    localStorage.getItem("palette") || "visibility1";
+
+let currentLanguage =
+    localStorage.getItem("language") || "ja";
+
+paletteSelect.value = currentPalette;
+languageSelect.value = currentLanguage;
+
+const savedNameType =
+    localStorage.getItem("nameType") || "seq";
+
+document.querySelector(
+    `input[name="nameType"][value="${savedNameType}"]`
+).checked = true;
+
+document.querySelectorAll('input[name="nameType"]').forEach(radio => {
+    radio.addEventListener("change", e => {
+        localStorage.setItem("nameType", e.target.value);
+    });
+});
+
+function t(key) {
+    return texts[currentLanguage][key];
+}
+
+function updateLanguage() {
+    document.documentElement.lang = currentLanguage;
+    document.getElementById("title").textContent = t("title");
+    addBtn.textContent = t("add");
+
+    document.querySelectorAll("[data-i18n]").forEach(el => {
+        const key = el.dataset.i18n;
+        if (texts[currentLanguage][key]) {
+            el.textContent = texts[currentLanguage][key];
+        }
+    });
+
+    document.getElementById("delete-message").textContent =
+        t("deleteMessage");
+
+    document.getElementById("cancel-delete").textContent =
+        t("cancel");
+
+    document.getElementById("exec-delete").textContent =
+        t("delete");
+
+    [...paletteSelect.options].forEach((option,index) => {
+        option.textContent =
+            texts[currentLanguage].paletteOptions[index];
+    });
+
+    for (const id in stopwatches) {
+        updateCardLanguage(id);
+        renderLaps(id);
+    }
+}
+
+function updateCardLanguage(id) {
+    const name = document.getElementById(`name-${id}`);
+    if (!name) return;
+
+    name.placeholder = t("placeholder");
+
+    document.getElementById(`start-${id}`).textContent =
+        t("start");
+
+    document.getElementById(`stop-${id}`).textContent =
+        t("stop");
+
+    document.getElementById(`lap-${id}`).textContent =
+        t("lap");
+
+    document.getElementById(`reset-${id}`).textContent =
+        t("reset");
+
+    document.getElementById(`delete-${id}`).textContent =
+        t("delete");
+
+    const custom =
+        document.getElementById(`custom-${id}`);
+
+    if (custom) {
+        custom.title = t("custom");
+    }
+}
+
+languageSelect.addEventListener("change", e => {
+    currentLanguage = e.target.value;
+    localStorage.setItem("language",currentLanguage);
+    updateLanguage();
+});
+
+paletteSelect.addEventListener("change", e => {
+    currentPalette = e.target.value;
+    localStorage.setItem("palette",currentPalette);
+
+    for (const id in stopwatches) {
+        renderColorPalette(id);
+    }
+});
+
+function init() {
+    const savedData =
+        localStorage.getItem(STORAGE_KEY) ||
+        localStorage.getItem("multisw-data-v2");
+
+    if (savedData) {
+        stopwatches = JSON.parse(savedData);
+
+        for (const id in stopwatches) {
+            if (!("customColor" in stopwatches[id])) {
+                stopwatches[id].customColor = "#ff4081";
+            }
+
+            renderStopwatch(id);
+        }
+    } else {
+        addNewStopwatch();
+    }
+
+    updateLanguage();
+    startGlobalTimer();
+}
+
+function saveData() {
+    localStorage.setItem(
+        STORAGE_KEY,
+        JSON.stringify(stopwatches)
+    );
+}
+
+function getJSTParts() {
+    const formatter =
+        new Intl.DateTimeFormat("ja-JP",{
+            timeZone:"Asia/Tokyo",
+            year:"numeric",
+            month:"2-digit",
+            day:"2-digit",
+            hour:"2-digit",
+            minute:"2-digit",
+            second:"2-digit",
+            hour12:false
+        });
+
+    const parts =
+        formatter.formatToParts(new Date());
+
+    const v = {};
+
+    parts.forEach(p => {
+        v[p.type] = p.value;
+    });
+
+    return v;
+}
+
+function generateDefaultName() {
+    const type =
+        document.querySelector(
+            'input[name="nameType"]:checked'
+        ).value;
+
+    if (type === "seq") {
+        let count =
+            parseInt(
+                localStorage.getItem("timerCount") || "0",
+                10
+            ) + 1;
+
+        localStorage.setItem("timerCount",count);
+
+        return `Timer ${count}`;
+    }
+
+    const v = getJSTParts();
+
+    return `${v.year}/${v.month}/${v.day} ${v.hour}:${v.minute}:${v.second}`;
+}
+
+function addNewStopwatch() {
+    const id =
+        "sw-" +
+        Date.now() +
+        "-" +
+        Math.random().toString(36).slice(2,7);
+
+    stopwatches[id] = {
+        name:generateDefaultName(),
+        isRunning:false,
+        startTime:0,
+        elapsedTime:0,
+        laps:[],
+        startDateStr:"",
+        borderColor:"",
+        customColor:"#ff4081"
+    };
+
+    saveData();
+    renderStopwatch(id);
+}
+
+function formatTime(ms) {
+    const totalSec = Math.floor(ms / 1000);
+    const h = Math.floor(totalSec / 3600);
+    const m = Math.floor((totalSec % 3600) / 60);
+    const s = totalSec % 60;
+    const ms10 = Math.floor((ms % 1000) / 10);
+
+    return (
+        (h > 0
+            ? String(h).padStart(2,"0") + ":"
+            : "") +
+        String(m).padStart(2,"0") + ":" +
+        String(s).padStart(2,"0") + "." +
+        String(ms10).padStart(2,"0")
+    );
+}
+
+function startGlobalTimer() {
+    if (timerInterval) {
+        clearInterval(timerInterval);
+    }
+
+    timerInterval = setInterval(() => {
+        const now = Date.now();
+
+        for (const id in stopwatches) {
+            const sw = stopwatches[id];
+
+            if (sw.isRunning) {
+                const display =
+                    document.getElementById(
+                        `display-${id}`
+                    );
+
+                if (display) {
+                    display.textContent =
+                        formatTime(
+                            sw.elapsedTime +
+                            (now - sw.startTime)
+                        );
+                }
+            }
+        }
+    },30);
+}
+
+function renderLaps(id) {
+    const sw = stopwatches[id];
+
+    const list =
+        document.getElementById(`laps-${id}`);
+
+    if (!list) return;
+
+    list.innerHTML = "";
+
+    for (let i = sw.laps.length - 1; i >= 0; i--) {
+        const interval =
+            sw.laps[i] -
+            (i > 0 ? sw.laps[i - 1] : 0);
+
+        const li =
+            document.createElement("li");
+
+        li.className = "lap-item";
+
+        const index =
+            document.createElement("span");
+
+        index.className = "lap-index";
+        index.textContent =
+            `${t("lapLabel")} ${i + 1}`;
+
+        const time =
+            document.createElement("span");
+
+        time.textContent =
+            formatTime(interval);
+
+        li.append(index,time);
+        list.appendChild(li);
+    }
+}
+
+function renderColorPalette(id) {
+    const sw = stopwatches[id];
+
+    const palette =
+        document.getElementById(`colors-${id}`);
+
+    if (!palette) return;
+
+    palette.innerHTML = "";
+
+    palettes[currentPalette].forEach(color => {
+        const dot =
+            document.createElement("div");
+
+        dot.className = "color-dot";
+
+        if (sw.borderColor === color) {
+            dot.classList.add("selected");
+        }
+
+        dot.style.backgroundColor = color;
+        dot.dataset.color = color;
+
+        dot.addEventListener("click",() => {
+            sw.borderColor = color;
+
+            document.getElementById(
+                `card-${id}`
+            ).style.borderColor = color;
+
+            saveData();
+            renderColorPalette(id);
+        });
+
+        palette.appendChild(dot);
+    });
+
+    const custom =
+        document.createElement("input");
+
+    custom.type = "color";
+    custom.className = "custom-color";
+    custom.id = `custom-${id}`;
+    custom.value =
+        sw.customColor || "#ff4081";
+
+    custom.title = t("custom");
+
+    custom.addEventListener("input",e => {
+        sw.customColor = e.target.value;
+        sw.borderColor = e.target.value;
+
+        document.getElementById(
+            `card-${id}`
+        ).style.borderColor =
+            e.target.value;
+
+        saveData();
+    });
+
+    palette.appendChild(custom);
+}
+
+function renderStopwatch(id) {
+    const sw = stopwatches[id];
+
+    const card =
+        document.createElement("div");
+
+    card.className = "stopwatch-card";
+    card.id = `card-${id}`;
+
+    if (sw.borderColor) {
+        card.style.borderColor =
+            sw.borderColor;
+    }
+
+    const displayTime =
+        sw.isRunning
+            ? sw.elapsedTime +
+              (Date.now() - sw.startTime)
+            : sw.elapsedTime;
+
+    card.innerHTML = `
+        <div class="start-date" id="startdate-${id}"></div>
+
+        <input
+            type="text"
+            class="name-input"
+            id="name-${id}"
+        >
+
+        <div
+            class="time-display"
+            id="display-${id}"
+        ></div>
+
+        <div class="card-controls">
+            <button
+                id="start-${id}"
+                class="btn-primary"
+            ></button>
+
+            <button
+                id="stop-${id}"
+                class="btn-outline"
+            ></button>
+
+            <button
+                id="lap-${id}"
+                class="btn-outline"
+            ></button>
+
+            <button
+                id="reset-${id}"
+                class="btn-outline"
+            ></button>
+        </div>
+
+        <div class="lap-container">
+            <ul
+                class="lap-list"
+                id="laps-${id}"
+            ></ul>
+        </div>
+
+        <div class="footer-area">
+            <button
+                id="delete-${id}"
+                class="delete-btn"
+            ></button>
+
+            <div
+                class="color-palette"
+                id="colors-${id}"
+            ></div>
+        </div>
+    `;
+
+    container.appendChild(card);
+
+    document.getElementById(
+        `startdate-${id}`
+    ).textContent = sw.startDateStr;
+
+    document.getElementById(
+        `name-${id}`
+    ).value = sw.name;
+
+    document.getElementById(
+        `display-${id}`
+    ).textContent =
+        formatTime(displayTime);
+
+    const startBtn =
+        document.getElementById(`start-${id}`);
+
+    const stopBtn =
+        document.getElementById(`stop-${id}`);
+
+    const lapBtn =
+        document.getElementById(`lap-${id}`);
+
+    function updateBtns() {
+        startBtn.disabled = sw.isRunning;
+        stopBtn.disabled = !sw.isRunning;
+        lapBtn.disabled = !sw.isRunning;
+    }
+
+    updateBtns();
+    renderLaps(id);
+    renderColorPalette(id);
+    updateCardLanguage(id);
+
+    document.getElementById(
+        `name-${id}`
+    ).addEventListener("change",e => {
+        sw.name = e.target.value;
+        saveData();
+    });
+
+    startBtn.addEventListener("click",() => {
+        if (sw.isRunning) return;
+
+        if (
+            sw.elapsedTime === 0 &&
+            !sw.startDateStr
+        ) {
+            const v = getJSTParts();
+
+            sw.startDateStr =
+                `${v.month}/${v.day} ` +
+                `${v.hour}:${v.minute}:${v.second}`;
+
+            document.getElementById(
+                `startdate-${id}`
+            ).textContent =
+                sw.startDateStr;
+        }
+
+        sw.isRunning = true;
+        sw.startTime = Date.now();
+
+        saveData();
+        updateBtns();
+    });
+
+    stopBtn.addEventListener("click",() => {
+        if (!sw.isRunning) return;
+
+        sw.isRunning = false;
+
+        sw.elapsedTime +=
+            Date.now() - sw.startTime;
+
+        saveData();
+        updateBtns();
+    });
+
+    lapBtn.addEventListener("click",() => {
+        if (!sw.isRunning) return;
+
+        sw.laps.push(
+            sw.elapsedTime +
+            (Date.now() - sw.startTime)
+        );
+
+        saveData();
+        renderLaps(id);
+    });
+
+    document.getElementById(
+        `reset-${id}`
+    ).addEventListener("click",() => {
+        sw.isRunning = false;
+        sw.elapsedTime = 0;
+        sw.startTime = 0;
+        sw.laps = [];
+        sw.startDateStr = "";
+
+        document.getElementById(
+            `startdate-${id}`
+        ).textContent = "";
+
+        document.getElementById(
+            `display-${id}`
+        ).textContent =
+            formatTime(0);
+
+        saveData();
+        renderLaps(id);
+        updateBtns();
+    });
+
+    document.getElementById(
+        `delete-${id}`
+    ).addEventListener("click",() => {
+        if (skipConfirm) {
+            doDelete(id);
+        } else {
+            targetToDelete = id;
+
+            document.getElementById(
+                "skip-confirm-cb"
+            ).checked = false;
+
+            deleteDialog.showModal();
+        }
+    });
+}
+
+function doDelete(id) {
+    delete stopwatches[id];
+    saveData();
+
+    const card =
+        document.getElementById(`card-${id}`);
+
+    if (card) {
+        card.remove();
+    }
+}
+
+document.getElementById(
+    "exec-delete"
+).addEventListener("click",() => {
+
+    if (
+        document.getElementById(
+            "skip-confirm-cb"
+        ).checked
+    ) {
+        skipConfirm = true;
+
+        localStorage.setItem(
+            "skipConfirm",
+            "true"
+        );
+    }
+
+    if (targetToDelete) {
+        doDelete(targetToDelete);
+    }
+
+    targetToDelete = null;
+    deleteDialog.close();
+});
+
+document.getElementById(
+    "cancel-delete"
+).addEventListener("click",() => {
+    targetToDelete = null;
+    deleteDialog.close();
+});
+
+addBtn.addEventListener(
+    "click",
+    addNewStopwatch
+);
+
+init();
+</script>
+
+</body>
+</html>
